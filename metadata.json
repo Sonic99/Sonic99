@@ -1,0 +1,6 @@
+{
+  "name": "SIPENDUK Digital - Pendataan Warga & e-KTP QR",
+  "description": "Sistem Informasi Pendataan Warga dan Kependudukan Digital terintegrasi verifikasi e-KTP, pemindaian QR Code real-time, geolokasi presisi, dashboard statistik kependudukan, dan autentikasi dua faktor (2FA).",
+  "requestFramePermissions": ["camera"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
