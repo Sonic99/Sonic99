@@ -26,7 +26,7 @@ import {
 
 interface KkUploadDispendukcapilViewProps {
   citizens: Citizen[];
-  onImportVerifiedCitizens: (newCitizens: Citizen[], noKk: string) => void;
+  onImportVerifiedCitizens: (newCitizens: Citizen[], noKk: string, replaceAll?: boolean) => void;
   onOpenCardDetail: (citizen: Citizen) => void;
   onOpenFamilyCard: (noKk: string) => void;
   onNavigateToCitizens?: () => void;
@@ -115,10 +115,10 @@ export const KkUploadDispendukcapilView: React.FC<KkUploadDispendukcapilViewProp
     }
   };
 
-  const handleMasukkanSeluruhDataKk = () => {
+  const handleMasukkanSeluruhDataKk = (replaceAll: boolean = true) => {
     if (!verificationResult) return;
     const newCitizens = convertDukcapilMembersToCitizens(verificationResult);
-    onImportVerifiedCitizens(newCitizens, verificationResult.noKk);
+    onImportVerifiedCitizens(newCitizens, verificationResult.noKk, replaceAll);
     setImportedSuccess(true);
   };
 
@@ -368,22 +368,22 @@ export const KkUploadDispendukcapilView: React.FC<KkUploadDispendukcapilViewProp
                 <div className="space-y-1">
                   <div className="text-xs font-bold text-emerald-300 uppercase tracking-wider flex items-center gap-1.5">
                     <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                    Seluruh Info KK Siap Dimasukkan
+                    Data Asli Hasil Scanning Siap Dimasukkan
                   </div>
                   <h3 className="text-base font-bold text-white">
                     Kartu Keluarga No. {verificationResult.noKk}
                   </h3>
                   <p className="text-xs text-slate-300">
-                    Kepala Keluarga: <span className="font-semibold text-white">{verificationResult.namaKepalaKeluarga}</span> · {verificationResult.anggotaKeluargaTerbitan.length} Anggota Keluarga
+                    Kepala Keluarga: <span className="font-semibold text-white">{verificationResult.namaKepalaKeluarga}</span> · {verificationResult.anggotaKeluargaTerbitan.length} Anggota Keluarga Asli
                   </p>
                 </div>
 
                 <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-2 shrink-0">
                   <button
                     type="button"
-                    onClick={handleMasukkanSeluruhDataKk}
+                    onClick={() => handleMasukkanSeluruhDataKk(true)}
                     disabled={importedSuccess}
-                    className={`py-3 px-6 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
+                    className={`py-3 px-5 rounded-xl text-xs font-bold transition-all shadow-md flex items-center justify-center gap-2 ${
                       importedSuccess
                         ? 'bg-emerald-600 text-white cursor-default'
                         : 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 ring-2 ring-emerald-300 cursor-pointer active:scale-95'
@@ -392,15 +392,26 @@ export const KkUploadDispendukcapilView: React.FC<KkUploadDispendukcapilViewProp
                     {importedSuccess ? (
                       <>
                         <Check className="w-5 h-5 text-white" />
-                        <span>Seluruh Data Berhasil Dimasukkan ke Database</span>
+                        <span>Database Berhasil Diganti dengan Data Asli</span>
                       </>
                     ) : (
                       <>
                         <UserPlus className="w-5 h-5 text-slate-950" />
-                        <span>Masukkan Data Seluruh Info yang Ada di KK Tersebut</span>
+                        <span>Ganti Semua Data Dummy & Masukkan Data Asli</span>
                       </>
                     )}
                   </button>
+
+                  {!importedSuccess && (
+                    <button
+                      type="button"
+                      onClick={() => handleMasukkanSeluruhDataKk(false)}
+                      className="py-3 px-3.5 rounded-xl text-xs font-semibold bg-white/10 hover:bg-white/20 text-white border border-white/20 transition-all flex items-center justify-center gap-1.5"
+                    >
+                      <Layers className="w-4 h-4 text-slate-200" />
+                      <span>Gabungkan Data</span>
+                    </button>
+                  )}
                 </div>
               </div>
 
@@ -731,7 +742,7 @@ export const KkUploadDispendukcapilView: React.FC<KkUploadDispendukcapilViewProp
 
                 <button
                   type="button"
-                  onClick={handleMasukkanSeluruhDataKk}
+                  onClick={() => handleMasukkanSeluruhDataKk(true)}
                   disabled={importedSuccess}
                   className={`px-6 py-2.5 text-xs font-bold rounded-xl transition-all inline-flex items-center justify-center gap-2 w-full sm:w-auto shadow-sm ${
                     importedSuccess

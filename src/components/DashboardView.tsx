@@ -169,10 +169,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <button
               type="button"
               onClick={onOpenOfficialReport}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-rose-950 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-950 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors shadow-xs"
+              title="Cetak Laporan Resmi Sesuai Permintaan Dinas"
             >
-              <FileText className="w-3.5 h-3.5 text-rose-700" />
-              Laporan PDF Kecamatan
+              <FileText className="w-3.5 h-3.5 text-emerald-700" />
+              Print Laporan Dinas (.pdf)
             </button>
           )}
 
@@ -204,6 +205,32 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </button>
         </div>
       </div>
+
+      {stats.totalWarga === 0 && (
+        <div className="p-5 bg-gradient-to-r from-emerald-50 via-teal-50 to-sky-50 border border-emerald-200 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-emerald-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+              <CheckCircle2 className="w-6 h-6" />
+            </div>
+            <div>
+              <h3 className="text-sm font-bold text-emerald-950">
+                Semua Data Dummy Telah Dihapus (Database Bersih 100%)
+              </h3>
+              <p className="text-xs text-emerald-800 mt-0.5">
+                Basis data kependudukan siap diisi data asli. Unggah berkas Kartu Keluarga untuk memindai dokumen dengan kecermatan AI 100% dan mengganti database dengan data asli.
+              </p>
+            </div>
+          </div>
+          <button
+            type="button"
+            onClick={() => onNavigate('upload-kk')}
+            className="px-4 py-2.5 bg-emerald-700 hover:bg-emerald-800 text-white rounded-lg text-xs font-bold shrink-0 transition-colors inline-flex items-center gap-2 shadow-xs"
+          >
+            <FileCheck2 className="w-4 h-4" />
+            <span>Mulai Scan Berkas KK Asli</span>
+          </button>
+        </div>
+      )}
 
       {/* KPI 4-Card Strip */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

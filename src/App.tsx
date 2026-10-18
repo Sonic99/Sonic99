@@ -4,8 +4,9 @@
  */
 
 import React, { useState, useEffect } from 'react';
-import { Citizen, VerificationStatus, LoginAudit } from './types/citizen';
+import { Citizen, VerificationStatus, LoginAudit, DinasKopConfig } from './types/citizen';
 import { INITIAL_ADMIN, INITIAL_AUDIT_LOGS, INITIAL_CITIZENS } from './data/seedData';
+import { loadStoredKopConfig, saveStoredKopConfig } from './data/dinasKopPresets';
 import { DashboardView } from './components/DashboardView';
 import { CitizenListView } from './components/CitizenListView';
 import { CitizenRegistrationForm } from './components/CitizenRegistrationForm';
@@ -17,6 +18,9 @@ import { KkUploadDispendukcapilView } from './components/KkUploadDispendukcapilV
 import { OfficialKecamatanReportModal } from './components/OfficialKecamatanReportModal';
 import { Auth2FAModal } from './components/Auth2FAModal';
 import { AdminSecurityView } from './components/AdminSecurityView';
+import { DinasKopBanner } from './components/DinasKopBanner';
+import { DinasKopModal } from './components/DinasKopModal';
+import { BackupRestoreView } from './components/BackupRestoreView';
 import {
   ShieldCheck,
   LayoutDashboard,
@@ -31,21 +35,25 @@ import {
   Menu,
   X,
   FileCheck2,
+  Database,
+  Printer,
+  Building2,
 } from 'lucide-react';
 
-const STORAGE_KEY_CITIZENS = 'sipenduk_citizens_v2';
+const STORAGE_KEY_CITIZENS = 'sipenduk_citizens_clean_v3';
 const STORAGE_KEY_LOGS = 'sipenduk_audit_logs_v2';
 
 export default function App() {
-  // Persistence via localStorage
+  // Persistence via localStorage - default to clean empty database without dummy data
   const [citizens, setCitizens] = useState<Citizen[]>(() => {
     try {
+      localStorage.removeItem('sipenduk_citizens_v2'); // remove previous dummy storage
       const saved = localStorage.getItem(STORAGE_KEY_CITIZENS);
       if (saved) return JSON.parse(saved);
     } catch {
       // fallback
     }
-    return INITIAL_CITIZENS;
+    return INITIAL_CITIZENS; // []
   });
 
   const [auditLogs, setAuditLogs] = useState<LoginAudit[]>(() => {
@@ -62,8 +70,14 @@ export default function App() {
   const [isLoggedIn, setIsLoggedIn] = useState(true);
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
 
+  // Dinas Kop Surat Configuration state (persisted in localStorage)
+  const [kopConfig, setKopConfig] = useState<DinasKopConfig>(loadStoredKopConfig);
+  const [isKopModalOpen, setIsKopModalOpen] = useState(false);
+
   // Active navigation tab
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'citizens' | 'register' | 'scanner' | 'upload-kk' | 'map' | 'security'>('dashboard');
+  const [activeTab, setActiveTab] = useState<
+    'dashboard' | 'citizens' | 'register' | 'scanner' | 'upload-kk' | 'map' | 'backup-restore' | 'security'
+  >('dashboard');
 
   // Modal for e-KTP physical card preview
   const [selectedCitizenForCard, setSelectedCitizenForCard] = useState<Citizen | null>(null);
@@ -190,15 +204,22 @@ export default function App() {
   };
 
   // Import / Synchronize verified citizens from Dispendukcapil KK document
-  const handleImportVerifiedCitizens = (newCitizens: Citizen[], noKk: string) => {
-    setCitizens((prev) => {
-      const incomingNiks = new Set(newCitizens.map((c) => c.nik));
-      const retained = prev.filter((c) => !incomingNiks.has(c.nik));
-      return [...newCitizens, ...retained];
-    });
-    showToast(
-      `Berhasil! Seluruh data keluarga No. KK ${noKk} (${newCitizens.length} Jiwa) telah dimasukkan ke Database Warga SIAK.`
-    );
+  const handleImportVerifiedCitizens = (newCitizens: Citizen[], noKk: string, replaceAll: boolean = true) => {
+    if (replaceAll) {
+      setCitizens(newCitizens);
+      showToast(
+        `Berhasil! Seluruh data dummy digantikan 100% dengan data asli hasil scanning KK No. ${noKk} (${newCitizens.length} Jiwa).`
+      );
+    } else {
+      setCitizens((prev) => {
+        const incomingNiks = new Set(newCitizens.map((c) => c.nik));
+        const retained = prev.filter((c) => !incomingNiks.has(c.nik));
+        return [...newCitizens, ...retained];
+      });
+      showToast(
+        `Berhasil! Data asli keluarga No. KK ${noKk} (${newCitizens.length} Jiwa) telah dimasukkan ke Database Warga SIAK.`
+      );
+    }
   };
 
   // Clear all dummy citizens so database starts clean
@@ -213,6 +234,34 @@ export default function App() {
     setCitizens(INITIAL_CITIZENS);
     localStorage.setItem(STORAGE_KEY_CITIZENS, JSON.stringify(INITIAL_CITIZENS));
     showToast('Data warga standar dipulihkan.');
+  };
+
+  // Save updated Kop Surat Dinas configuration
+  const handleSaveKopConfig = (newConfig: DinasKopConfig) => {
+    setKopConfig(newConfig);
+    saveStoredKopConfig(newConfig);
+    showToast(`Kop Surat Dinas berhasil diperbarui: ${newConfig.namaInstansi}`);
+  };
+
+  // Restore citizens database from Backup Package (.json)
+  const handleRestoreCitizens = (
+    newCitizens: Citizen[],
+    mode: 'replace' | 'merge',
+    newKopConfig?: DinasKopConfig
+  ) => {
+    if (newKopConfig) {
+      setKopConfig(newKopConfig);
+      saveStoredKopConfig(newKopConfig);
+    }
+    if (mode === 'replace') {
+      setCitizens(newCitizens);
+    } else {
+      setCitizens((prev) => {
+        const incomingNiks = new Set(newCitizens.map((c) => c.nik));
+        const retained = prev.filter((c) => !incomingNiks.has(c.nik));
+        return [...newCitizens, ...retained];
+      });
+    }
   };
 
   // 2FA Login success
@@ -251,14 +300,14 @@ export default function App() {
               <span className="text-base font-bold tracking-tight text-slate-900 block leading-tight">
                 SIPENDUK ELEKTRONIK
               </span>
-              <span className="text-[10px] text-slate-500 font-mono tracking-tight block">
-                Disdukcapil RI · Gambir, Jakarta Pusat
+              <span className="text-[10px] text-slate-500 font-mono tracking-tight block truncate max-w-[220px]">
+                {kopConfig.namaInstansi}
               </span>
             </div>
           </div>
 
           {/* Zone 2: Navigation Links, 1-2 word labels, single-line */}
-          <nav className="hidden lg:flex items-center gap-6 text-xs font-semibold text-slate-600 whitespace-nowrap">
+          <nav className="hidden lg:flex items-center gap-5 text-xs font-semibold text-slate-600 whitespace-nowrap">
             <button
               type="button"
               onClick={() => setActiveTab('dashboard')}
@@ -292,7 +341,7 @@ export default function App() {
                   : ''
               }`}
             >
-              Pendaftaran Baru
+              Pendaftaran
             </button>
 
             <button
@@ -304,7 +353,7 @@ export default function App() {
                   : ''
               }`}
             >
-              Pindai QR Real-Time
+              Pindai QR
             </button>
 
             <button
@@ -317,7 +366,7 @@ export default function App() {
               }`}
             >
               <FileCheck2 className="w-3.5 h-3.5 text-emerald-600" />
-              Unggah Berkas KK
+              Unggah KK
             </button>
 
             <button
@@ -334,6 +383,20 @@ export default function App() {
 
             <button
               type="button"
+              onClick={() => setActiveTab('backup-restore')}
+              className={`py-1 transition-colors hover:text-slate-900 flex items-center gap-1.5 ${
+                activeTab === 'backup-restore'
+                  ? 'text-slate-900 border-b-2 border-slate-900 font-bold'
+                  : ''
+              }`}
+              title="Menu Pencadangan & Pemulihan Basis Data"
+            >
+              <Database className="w-3.5 h-3.5 text-sky-600" />
+              Backup & Restore
+            </button>
+
+            <button
+              type="button"
               onClick={() => setActiveTab('security')}
               className={`py-1 transition-colors hover:text-slate-900 flex items-center gap-1.5 ${
                 activeTab === 'security'
@@ -342,7 +405,7 @@ export default function App() {
               }`}
             >
               <Lock className="w-3.5 h-3.5 text-slate-400" />
-              Keamanan 2FA
+              2FA
             </button>
           </nav>
 
@@ -481,6 +544,19 @@ export default function App() {
             <button
               type="button"
               onClick={() => {
+                setActiveTab('backup-restore');
+                setMobileMenuOpen(false);
+              }}
+              className={`w-full text-left px-3 py-2 text-xs rounded-md font-medium flex items-center gap-2 ${
+                activeTab === 'backup-restore' ? 'bg-slate-100 text-slate-900 font-bold' : 'text-slate-600'
+              }`}
+            >
+              <Database className="w-3.5 h-3.5 text-sky-600" />
+              Backup & Restore Basis Data
+            </button>
+            <button
+              type="button"
+              onClick={() => {
                 setActiveTab('security');
                 setMobileMenuOpen(false);
               }}
@@ -494,13 +570,21 @@ export default function App() {
         )}
       </header>
 
+      {/* KOP SURAT DINAS RESMI & IDENTITAS PEMDA */}
+      <DinasKopBanner
+        kopConfig={kopConfig}
+        onOpenKopModal={() => setIsKopModalOpen(true)}
+        onOpenReportModal={() => setIsOfficialReportModalOpen(true)}
+        onNavigateToBackup={() => setActiveTab('backup-restore')}
+      />
+
       {/* SUB-HEADER CONTEXTUAL BREADCRUMB STRIP */}
       <div className="bg-slate-100 border-b border-slate-200/80 px-4 sm:px-6 lg:px-8 py-2 text-[11px] text-slate-600 no-print">
         <div className="max-w-7xl mx-auto flex items-center justify-between">
           <div className="flex items-center gap-2">
             <span>Sistem Informasi Kependudukan</span>
             <span className="text-slate-400">/</span>
-            <span>Provinsi DKI Jakarta</span>
+            <span className="truncate max-w-[200px]">{kopConfig.pemerintahTingkat1}</span>
             <span className="text-slate-400">/</span>
             <span className="font-semibold text-slate-800">
               {activeTab === 'dashboard' && 'Dasbor Statistik Demografi'}
@@ -509,6 +593,7 @@ export default function App() {
               {activeTab === 'scanner' && 'Pemindai QR Lapangan Real-Time'}
               {activeTab === 'upload-kk' && 'Unggah Berkas KK (Integrasi Dispendukcapil SIAK)'}
               {activeTab === 'map' && 'Peta Geospasial Titik Domisili'}
+              {activeTab === 'backup-restore' && 'Pencadangan & Pemulihan Basis Data (Backup & Restore)'}
               {activeTab === 'security' && 'Pusat Keamanan 2FA'}
             </span>
           </div>
@@ -579,6 +664,17 @@ export default function App() {
           />
         )}
 
+        {activeTab === 'backup-restore' && (
+          <BackupRestoreView
+            citizens={citizens}
+            auditLogs={auditLogs}
+            kopConfig={kopConfig}
+            onRestoreCitizens={handleRestoreCitizens}
+            onOpenKopModal={() => setIsKopModalOpen(true)}
+            onShowToast={showToast}
+          />
+        )}
+
         {activeTab === 'security' && (
           <AdminSecurityView
             admin={admin}
@@ -593,7 +689,7 @@ export default function App() {
       <footer className="bg-white border-t border-slate-200 py-4 text-center text-xs text-slate-500 no-print">
         <div className="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
           <div>
-            © 2026 SIPENDUK ELEKTRONIK · Kementerian Dalam Negeri Republik Indonesia
+            © 2026 SIPENDUK ELEKTRONIK · {kopConfig.namaInstansi}
           </div>
           <div className="text-[11px] text-slate-400">
             Terintegrasi Identitas Kependudukan Digital (IKD) & Autentikasi Dua Faktor
@@ -624,11 +720,21 @@ export default function App() {
         />
       )}
 
-      {/* MODAL: LAPORAN RESMI KECAMATAN PDF */}
+      {/* MODAL: LAPORAN RESMI KECAMATAN/DISDUKCAPIL PDF */}
       <OfficialKecamatanReportModal
         citizens={citizens}
         isOpen={isOfficialReportModalOpen}
         onClose={() => setIsOfficialReportModalOpen(false)}
+        kopConfig={kopConfig}
+        onOpenKopModal={() => setIsKopModalOpen(true)}
+      />
+
+      {/* MODAL: PENGATURAN KOP SURAT DINAS RESMI */}
+      <DinasKopModal
+        isOpen={isKopModalOpen}
+        onClose={() => setIsKopModalOpen(false)}
+        currentConfig={kopConfig}
+        onSave={handleSaveKopConfig}
       />
 
       {/* MODAL: TWO-FACTOR AUTHENTICATION LOGIN */}

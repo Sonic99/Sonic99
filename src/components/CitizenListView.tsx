@@ -13,6 +13,7 @@ import {
   X,
   History,
   FileText,
+  Printer,
 } from 'lucide-react';
 
 interface CitizenListViewProps {
@@ -176,10 +177,11 @@ export const CitizenListView: React.FC<CitizenListViewProps> = ({
             <button
               type="button"
               onClick={onOpenOfficialReport}
-              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-rose-950 bg-rose-50 border border-rose-200 rounded-lg hover:bg-rose-100 transition-colors shadow-xs"
+              className="inline-flex items-center gap-1.5 px-3.5 py-2 text-xs font-semibold text-emerald-950 bg-emerald-50 border border-emerald-300 rounded-lg hover:bg-emerald-100 transition-colors shadow-xs"
+              title="Cetak Laporan Resmi Sesuai Permintaan Dinas"
             >
-              <FileText className="w-3.5 h-3.5 text-rose-700" />
-              Laporan PDF Kecamatan
+              <Printer className="w-3.5 h-3.5 text-emerald-700" />
+              Print Laporan Dinas (.pdf)
             </button>
           )}
 
@@ -435,12 +437,16 @@ export const CitizenListView: React.FC<CitizenListViewProps> = ({
               ) : (
                 <tr>
                   <td colSpan={7} className="py-12 text-center text-slate-400">
-                    <div className="max-w-xs mx-auto space-y-2">
-                      <p className="text-xs font-medium text-slate-700">
-                        Tidak ditemukan data warga yang sesuai filter.
+                    <div className="max-w-sm mx-auto space-y-2">
+                      <p className="text-xs font-semibold text-slate-800">
+                        {citizens.length === 0
+                          ? 'Database Warga Bersih (Seluruh Data Dummy Telah Dihapus)'
+                          : 'Tidak ditemukan data warga yang sesuai filter.'}
                       </p>
-                      <p className="text-[11px] text-slate-400">
-                        Coba gunakan kata kunci lain atau bersihkan filter pencarian.
+                      <p className="text-[11px] text-slate-500">
+                        {citizens.length === 0
+                          ? 'Silakan masuk ke menu Unggah Berkas KK untuk memindai dokumen Kartu Keluarga dengan AI dan mengganti database dengan data asli.'
+                          : 'Coba gunakan kata kunci lain atau bersihkan filter pencarian.'}
                       </p>
                     </div>
                   </td>
